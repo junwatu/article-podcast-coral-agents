@@ -4,7 +4,7 @@ version = "0.0.1"
 
 
 [options]
-# No runtime configuration required.
+# Reserved for future configuration.
 
 [runtimes.executable]
 command = ["npm", "run", "dev"]
