@@ -1,0 +1,10 @@
+[agent]
+name = "article_fetcher"
+version = "0.0.1"
+
+
+[options]
+# No runtime configuration required.
+
+[runtimes.executable]
+command = ["npm", "run", "dev"]
