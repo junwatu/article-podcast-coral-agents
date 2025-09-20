@@ -1,0 +1,38 @@
+[agent]
+name = "podcast_script"
+version = "0.0.1"
+
+[options.OPENAI_API_KEY]
+type = "string"
+description = "OpenAI API Key"
+default = "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"
+
+[options.OPENAI_MODEL]
+type = "string"
+description = "Override model to use for podcast script generation"
+default= "gpt-5-mini"
+
+[options.SCRIPT_PROMPT_APPEND]
+type = "string"
+description = "Optional instructions appended to the podcast script system prompt"
+default = ""
+
+[options.PODCAST_HOST_VOICE_ID]
+type = "string"
+description = "Optional override for the host voice ID"
+default = "gmnazjXOFoOcWA59sd5m"
+
+[options.PODCAST_GUEST_VOICE_ID]
+type = "string"
+description = "Optional override for the guest voice ID"
+default="1kNciG1jHVSuFBPoxdRZ"
+
+[runtimes.executable]
+command = ["npm", "run", "start"]
+environment = [
+    { option = "OPENAI_API_KEY" },
+    { option = "OPENAI_MODEL" },
+    { option = "SCRIPT_PROMPT_APPEND" },
+    { option = "PODCAST_HOST_VOICE_ID" },
+    { option = "PODCAST_GUEST_VOICE_ID" },
+]
