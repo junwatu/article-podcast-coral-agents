@@ -1,6 +1,7 @@
 import "dotenv/config";
 import fs from "fs";
 import path from "path";
+import { createHash } from "crypto";
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
@@ -39,6 +40,12 @@ interface SynthesisResult {
   dataUri?: string;
 }
 
+interface DialogueEnvelope {
+  dialogue?: DialogueLine[];
+  inputs?: DialogueLine[];
+  force?: boolean;
+}
+
 // —— Env ——
 function requireEnv(name: string): string {
   const v = process.env[name];
@@ -65,6 +72,8 @@ const MAX_INLINE_BYTES = Math.min(
   })(),
   8 * 1024 * 1024
 );
+
+const recentDialogueHashes = new Map<string, string>();
 
 // —— Utilities ——
 async function appendLogAsync(event: string, payload?: unknown) {
@@ -182,6 +191,16 @@ function tryParse(raw: string): DialogueLine[] | null {
     } catch { }
   }
 
+  const braceIndex = raw.indexOf("{");
+  if (braceIndex !== -1) {
+    const candidate = raw.slice(braceIndex);
+    try {
+      const o3 = JSON.parse(candidate);
+      const res3 = attempt(o3);
+      if (res3) return res3;
+    } catch { }
+  }
+
   return null;
 }
 
@@ -193,6 +212,25 @@ async function extractInputsAsync(raw: string): Promise<DialogueLine[]> {
   if (direct) return z.array(lineSchema).min(1).parse(direct);
 
   throw new Error("Unable to parse JSON; expected { dialogue: [...] } or { inputs: [...] }.");
+}
+
+function computeDialogueHash(inputs: DialogueLine[]): string {
+  const canonical = JSON.stringify(inputs.map((item) => ({ text: item.text, voice_id: item.voice_id })));
+  return createHash("sha256").update(canonical).digest("hex");
+}
+
+function shouldSkipSynthesis(threadId: string, inputs: DialogueLine[], force?: boolean): boolean {
+  const hash = computeDialogueHash(inputs);
+  if (force) {
+    recentDialogueHashes.set(threadId, hash);
+    return false;
+  }
+  const last = recentDialogueHashes.get(threadId);
+  if (last && last === hash) {
+    return true;
+  }
+  recentDialogueHashes.set(threadId, hash);
+  return false;
 }
 
 // —— ElevenLabs synthesis ——
@@ -276,7 +314,26 @@ async function handleMessage(client: Client, message: ResolvedMessage): Promise<
       sample: summarizeInputs(inputs, 2),
     });
   } catch (err) {
-    await sendMessage(client, message.threadId, JSON.stringify({ success: false, error: err instanceof Error ? err.message : String(err) }), mentions);
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    await appendLogAsync("synthesis:parse_error", {
+      threadId: message.threadId,
+      messageId: message.id,
+      error: errorMessage,
+    });
+    await sendMessage(client, message.threadId, JSON.stringify({ success: false, error: errorMessage }), mentions);
+    return;
+  }
+
+  let force = false;
+  try {
+    const envelope = JSON.parse(message.content) as DialogueEnvelope;
+    force = Boolean(envelope.force);
+  } catch {
+    // message may not be strict JSON; ignore
+  }
+
+  if (shouldSkipSynthesis(message.threadId, inputs, force)) {
+    await appendLogAsync("synthesis:skipped_duplicate", { threadId: message.threadId, messageId: message.id, force });
     return;
   }
 

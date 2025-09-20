@@ -32,7 +32,7 @@ description = "Mention wait timeout in milliseconds"
 default = "600000"
 
 [runtimes.executable]
-command = ["npm", "run", "dev"]
+command = ["npm", "run", "start"]
 environment = [
     { option = "ELEVENLABS_API_KEY" },
     { option = "ELEVENLABS_OUTPUT_FORMAT" },

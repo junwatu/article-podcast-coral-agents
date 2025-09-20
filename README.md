@@ -21,4 +21,4 @@ This agent listens for mentions in Coral threads and turns provided dialogue JSO
 - `npm run build` – compile TypeScript to `dist`
 - `npm run start` – run the built agent
 
-The agent expects the mentioned message to include either `{ "dialogue": [...] }` or `{ "inputs": [...] }` JSON payloads containing `text` and `voice_id` pairs. Inputs must already be valid JSON—the agent validates structure but does not attempt automatic repair.
+The agent expects the mentioned message to include either `{ "dialogue": [...] }` or `{ "inputs": [...] }` JSON payloads containing `text` and `voice_id` pairs. Inputs must already be valid JSON—the agent validates structure but does not attempt automatic repair. When the same dialogue is sent repeatedly in a thread, the agent skips synthesis unless you include `"force": true` alongside the payload.
