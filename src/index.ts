@@ -253,37 +253,10 @@ async function handleMessage(client: Client, message: ResolvedMessage): Promise<
 
   const mentions = buildMentions(message);
 
-  const rawContent = (message.content ?? "").trim();
-  const lowerContent = rawContent.toLowerCase();
-  const looksJsonLike =
-    rawContent.startsWith("{") ||
-    rawContent.startsWith("[") ||
-    rawContent.startsWith("`") ||
-    rawContent.includes("```") ||
-    lowerContent.includes('"dialogue"') ||
-    lowerContent.includes('"inputs"');
-
-  if (!rawContent) {
-    appendLog("skip:empty_content", { messageId: message.id });
-    return;
-  }
-
-  if (!looksJsonLike) {
-    appendLog("skip:non_json_content", {
-      messageId: message.id,
-      preview: rawContent.slice(0, 200),
-    });
-    return;
-  }
-
   let inputs: DialogueLine[];
   try {
-    inputs = extractInputs(rawContent);
+    inputs = extractInputs(message.content);
   } catch (err) {
-    appendLog("extract_inputs:error", {
-      messageId: message.id,
-      error: err instanceof Error ? err.message : String(err),
-    });
     await sendMessage(
       client,
       message.threadId,
