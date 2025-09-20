@@ -1,6 +1,6 @@
 # Podcast Script Agent
 
-This Coral agent listens for mentions and turns fetched article content into a concise podcast script. Mention it alongside the Article Fetcher response—either the simplified `{ "data": "..." }` payload or the legacy structured object—and it will summarize the text into an alternating dialogue between Speaker A (host) and Speaker B (guest). The agent keeps the combined dialogue under roughly 2400 characters and emits structured JSON ready for downstream text-to-speech tooling. Script generation is powered by the [`@openai/agents`](https://openai.github.io/openai-agents-js/) SDK to enforce structured output.
+This Coral agent listens for mentions and turns fetched article content into a concise podcast script.  
 
 ## Configuration
 
