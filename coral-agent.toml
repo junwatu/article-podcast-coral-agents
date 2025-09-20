@@ -1,11 +1,10 @@
 [agent]
-name = "podcast_tts"
+name = "podcast_generator"
 version = "0.0.1"
 
 [options.ELEVENLABS_API_KEY]
 type = "string"
-description = "ElevenLabs API key"
-default = "sk_4a1993eb92631a8511f41fedf55324df5841a7207df7805b"
+description = "ElevenLabs API key used for text-to-dialogue synthesis"
 
 [options.ELEVENLABS_OUTPUT_FORMAT]
 type = "string"
