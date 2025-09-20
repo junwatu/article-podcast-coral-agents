@@ -1,6 +1,7 @@
 import "dotenv/config";
 import fs from "fs";
 import path from "path";
+import { createHash } from "crypto";
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
@@ -104,6 +105,7 @@ const CORAL_AGENT_ID = process.env.CORAL_AGENT_ID ?? "podcast_script";
 const NORMALIZED_AGENT_ID = CORAL_AGENT_ID.replace(/^@/, "").toLowerCase();
 const WAIT_TIMEOUT_MS = Number.parseInt(process.env.WAIT_TIMEOUT_MS ?? "600000", 10);
 const LOG_PATH = path.resolve(process.cwd(), "podcast-script.log");
+const recentArticleHashes = new Map<string, string>();
 
 // ——— FINAL structured output schema (strict JSON) ———
 const finalDialogueSchema = z.object({
@@ -206,6 +208,24 @@ ${clipped}`
   };
 }
 
+function computeArticleHash(raw: string): string {
+  return createHash("sha256").update(raw.trim()).digest("hex");
+}
+
+function shouldSkipScript(threadId: string, raw: string, force = false): boolean {
+  const hash = computeArticleHash(raw);
+  if (force) {
+    recentArticleHashes.set(threadId, hash);
+    return false;
+  }
+  const last = recentArticleHashes.get(threadId);
+  if (last && last === hash) {
+    return true;
+  }
+  recentArticleHashes.set(threadId, hash);
+  return false;
+}
+
 async function generatePodcastScript(message: ResolvedMessage, articleContext: string): Promise<FinalDialogueResponse> {
   const userPrompt = [
     `Thread: ${message.threadName}`,
@@ -282,6 +302,7 @@ async function handleMessage(client: Client, message: ResolvedMessage): Promise<
 
   if (!shouldRespond(message)) return;
 
+  const force = /force_regenerate/i.test(message.content) || /"force"\s*:\s*true/i.test(message.content);
   const contextResult = extractArticleContext(message.content);
   if (!contextResult.success) {
     await sendMessage(
@@ -290,6 +311,11 @@ async function handleMessage(client: Client, message: ResolvedMessage): Promise<
       buildErrorResponse(contextResult.error),
       buildMentions(message),
     );
+    return;
+  }
+
+  if (shouldSkipScript(message.threadId, message.content, force)) {
+    appendLog("script_generation:skipped_duplicate", { threadId: message.threadId, messageId: message.id, force });
     return;
   }
 

@@ -28,7 +28,7 @@ description = "Optional override for the guest voice ID"
 default="1kNciG1jHVSuFBPoxdRZ"
 
 [runtimes.executable]
-command = ["npm", "run", "dev"]
+command = ["npm", "run", "start"]
 environment = [
     { option = "OPENAI_API_KEY" },
     { option = "OPENAI_MODEL" },

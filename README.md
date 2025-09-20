@@ -1,6 +1,7 @@
 # Podcast Script Agent
 
 This Coral agent listens for mentions and turns fetched article content into a concise podcast script.  
+It ignores duplicate requests in the same thread unless the message includes `force_regenerate` (or `"force": true`) to bypass the guard.
 
 ## Configuration
 
