@@ -1,0 +1,44 @@
+[agent]
+name = "podcast_tts"
+version = "0.0.1"
+
+[options.ELEVENLABS_API_KEY]
+type = "string"
+description = "ElevenLabs API key"
+default = "sk_4a1993eb92631a8511f41fedf55324df5841a7207df7805b"
+
+[options.ELEVENLABS_OUTPUT_FORMAT]
+type = "string"
+description = "Override ElevenLabs output format"
+default = "mp3_44100_128"
+
+[options.ELEVENLABS_RETURN_BASE64]
+type = "string"
+description = "Return ElevenLabs audio as base64 when set to 1/true"
+default = "0"
+
+[options.MAX_INLINE_BYTES]
+type = "string"
+description = "Maximum inline base64 payload size in bytes"
+default = "5242880"
+
+[options.OUTPUT_DIR]
+type = "string"
+description = "Directory to write generated audio files"
+default = "out"
+
+[options.WAIT_TIMEOUT_MS]
+type = "string"
+description = "Mention wait timeout in milliseconds"
+default = "600000"
+
+[runtimes.executable]
+command = ["npm", "run", "dev"]
+environment = [
+    { option = "ELEVENLABS_API_KEY" },
+    { option = "ELEVENLABS_OUTPUT_FORMAT" },
+    { option = "ELEVENLABS_RETURN_BASE64" },
+    { option = "MAX_INLINE_BYTES" },
+    { option = "OUTPUT_DIR" },
+    { option = "WAIT_TIMEOUT_MS" },
+]
