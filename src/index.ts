@@ -393,10 +393,15 @@ async function handleMessage(client: Client, message: ResolvedMessage): Promise<
   try {
     const article = await extractArticle(url);
     const clean = buildCleanArticle(article);
+    const fallbackParagraphs = clean.paragraphs?.join("\n\n") ?? "";
+    const cleanedText =
+      (clean.cleaned_text && clean.cleaned_text.trim()) ||
+      (article.text && article.text.trim()) ||
+      fallbackParagraphs.trim();
     await sendMessage(
       client,
       message.threadId,
-      JSON.stringify({ success: true, article, clean }),
+      JSON.stringify({ data: cleanedText }),
       [message.senderId, CORAL_AGENT_ID],
     );
   } catch (error) {
