@@ -59,6 +59,18 @@ function assertJsonSerializable(value: unknown): string {
   return serialized;
 }
 
+function buildErrorResponse(message: string, details?: string): string {
+  const payload: { error: { message: string; details?: string } } = {
+    error: { message },
+  };
+
+  if (details !== undefined) {
+    payload.error.details = details;
+  }
+
+  return assertJsonSerializable(payload);
+}
+
 function requireEnv(name: string): string {
   const value = process.env[name];
   if (!value) {
@@ -72,22 +84,17 @@ const GUEST_VOICE_ID = process.env.PODCAST_GUEST_VOICE_ID?.trim() || "1kNciG1jHV
 const MAX_SCRIPT_CHARACTERS = 2400;
 
 // ——— System prompt: enforces role↔voice mapping and JSON-only output ———
-const BASE_SYSTEM_PROMPT = (
-  `Create a short podcast script from the given article content. Make it engaging and conversational, and keep combined dialogue under ${MAX_SCRIPT_CHARACTERS} characters.
-
-` +
-  `Rules:
-` +
-  `- Alternate lines between two speakers: host then guest, then host, etc.
-` +
-  `- For host lines, set "voice_id" to "${HOST_VOICE_ID}".
-` +
-  `- For guest lines, set "voice_id" to "${GUEST_VOICE_ID}".
-` +
-  `- Output ONLY JSON that matches this schema exactly: { "dialogue": [ { "text": "…", "voice_id": "…" } ] }
-` +
-  `- No markdown fences. No extra fields. No commentary.`
-).trim();
+// Build without template literals to avoid accidental backticks or unterminated strings
+const BASE_SYSTEM_PROMPT = [
+  "Create a short podcast script from the given article content. Make it engaging and conversational, and keep combined dialogue under " + String(MAX_SCRIPT_CHARACTERS) + " characters.",
+  "",
+  "Rules:",
+  "- Alternate lines between two speakers: host then guest, then host, etc.",
+  "- For host lines, set \"voice_id\" to \"" + HOST_VOICE_ID + "\".",
+  "- For guest lines, set \"voice_id\" to \"" + GUEST_VOICE_ID + "\".",
+  "- Output ONLY JSON that matches this schema exactly: { \"dialogue\": [ { \"text\": \"…\", \"voice_id\": \"…\" } ] }",
+  "- No markdown fences. No extra fields. No commentary.",
+].join("\n");
 
 const OPENAI_API_KEY = requireEnv("OPENAI_API_KEY");
 const OPENAI_MODEL = process.env.OPENAI_MODEL ?? "";
@@ -205,9 +212,7 @@ async function generatePodcastScript(message: ResolvedMessage, articleContext: s
     `Requested by: ${message.senderId}`,
     "Article Overview:",
     articleContext,
-  ].join("
-
-");
+  ].join("\n\n");
 
   let extraInstruction = "";
   let lastError: unknown = null;
@@ -218,9 +223,7 @@ async function generatePodcastScript(message: ResolvedMessage, articleContext: s
       `Ensure the combined character count across all "text" values stays comfortably below ${MAX_SCRIPT_CHARACTERS}.`,
       SCRIPT_PROMPT_APPEND.trim(),
       extraInstruction ? `Adjustment request: ${extraInstruction}` : "",
-    ].filter(Boolean).join("
-
-");
+    ].filter(Boolean).join("\n\n");
 
     const agent = new Agent({
       name: "Podcast Script Agent",
@@ -284,7 +287,7 @@ async function handleMessage(client: Client, message: ResolvedMessage): Promise<
     await sendMessage(
       client,
       message.threadId,
-      JSON.stringify({ error: contextResult.error }),
+      buildErrorResponse(contextResult.error),
       buildMentions(message),
     );
     return;
@@ -298,7 +301,10 @@ async function handleMessage(client: Client, message: ResolvedMessage): Promise<
     await sendMessage(
       client,
       message.threadId,
-      JSON.stringify({ error: "Failed to generate podcast script.", details: error instanceof Error ? error.message : String(error) }),
+      buildErrorResponse(
+        "Failed to generate podcast script.",
+        error instanceof Error ? error.message : String(error),
+      ),
       buildMentions(message),
     );
     return;
