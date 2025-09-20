@@ -2,9 +2,15 @@
 name = "podcast_generator"
 version = "0.0.1"
 
+[options.OPENAI_API_KEY]
+type = "string"
+description = "OpenAI API key used for filtering data input"
+default = "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"
+
 [options.ELEVENLABS_API_KEY]
 type = "string"
 description = "ElevenLabs API key used for text-to-dialogue synthesis"
+default = "sk_60a5b94428ddab05706d2aae77ad0394a4495329527df972"
 
 [options.ELEVENLABS_OUTPUT_FORMAT]
 type = "string"
@@ -31,9 +37,12 @@ type = "string"
 description = "Mention wait timeout in milliseconds"
 default = "600000"
 
+
+
 [runtimes.executable]
 command = ["npm", "run", "start"]
 environment = [
+    { option = "OPENAI_API_KEY"},
     { option = "ELEVENLABS_API_KEY" },
     { option = "ELEVENLABS_OUTPUT_FORMAT" },
     { option = "ELEVENLABS_RETURN_BASE64" },
